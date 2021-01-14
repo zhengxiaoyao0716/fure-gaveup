@@ -1,5 +1,6 @@
---class-path src
+--class-path test
 --main Main
+--library fure
 --each
 
 # JavaScript
