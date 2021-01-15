@@ -16,9 +16,9 @@ abstract Hxx(String) from String {
 		var builder = builder.iterator();
 
 		return switch (builder.length) {
-			case 0: Code(0, 'null');
-			case 1: buildAst(builder.next());
-			case _: Flat(0, () -> [for (ast in builder) buildAst(ast)]);
+			case 0: Code([0, this.length], 'null');
+			case 1: buildAst(builder.next(), this.length);
+			case _: Flat([0, this.length], () -> buildAstIter(builder, this.length));
 		}
 	}
 
@@ -108,7 +108,7 @@ abstract Hxx(String) from String {
 							var endAt = takeBlock(offset);
 							if (endAt > offset) {
 								var block = this.substring(offset, endAt);
-	
+
 								props = null;
 								builder.push(Code(offset, block));
 								// state = Props;
@@ -170,7 +170,7 @@ abstract Hxx(String) from String {
 	static inline function isIdent(c:Int) {
 		if (isSpace(c))
 			return false;
-		if (c == '-'.code || c == '.'.code || c == '-'.code)
+		if (c == '-'.code || c == '.'.code || c == '_'.code)
 			return true;
 		if ('0'.code <= c && c <= '9'.code)
 			return true;
@@ -256,13 +256,50 @@ abstract Hxx(String) from String {
 		}
 		return offset;
 	}
+
 	//#endregion
 
-	static function buildAst(nodes:Or<AstBuilder, RArrIterable<AstBuilder>>):Ast {
+	static function buildAstIter(builder:RArrIterator<AstBuilder>, endAt:Int):Array<Ast> {
+		if (!builder.hasNext())
+			return [];
+		var arr = [];
+		var ast = builder.next();
+		while (true) {
+			if (!builder.hasNext()) {
+				arr.push(buildAst(ast, endAt));
+				break;
+			}
+			var next = builder.next();
+			arr.push(buildAst(ast, getAstOffset(next)));
+			ast = next;
+		}
+		return arr;
+	}
+
+	static function getAstOffset(nodes:Or<AstBuilder, RArrIterable<AstBuilder>>):Int
 		return switch (nodes) {
 			case A(one):
 				switch (one) {
-					case Code(offset, src): Code(offset, src);
+					case Code(offset, _): offset;
+					case _: 0;
+				}
+			case B(_.iterator() => nodes):
+				switch (nodes.next()) {
+					case A(one):
+						switch (one) {
+							case Node(offset, _): offset;
+							case Flat(offset): offset;
+							case _: 0;
+						}
+					case _: 0;
+				}
+		}
+
+	static function buildAst(nodes:Or<AstBuilder, RArrIterable<AstBuilder>>, endAt:Int):Ast {
+		return switch (nodes) {
+			case A(one):
+				switch (one) {
+					case Code(offset, src): Code([offset, endAt], src);
 					case _: null; // never
 				}
 			case B(_.iterator() => nodes):
@@ -275,13 +312,14 @@ abstract Hxx(String) from String {
 									case A(_): null;
 									case B(_.iterator() => inner): inner;
 								}
-								Node(offset, tag, () -> buildAst(props), () -> [for (ast in inner) buildAst(ast)]);
+								var propsEndAt = inner.hasNext() ? getAstOffset(inner.copy().next()) : endAt;
+								Node([offset, endAt], tag, () -> buildAst(props, propsEndAt), () -> buildAstIter(inner, endAt));
 							case Flat(offset):
 								var inner = switch (nodes.next()) {
 									case A(_): null;
 									case B(_.iterator() => inner): inner;
 								}
-								Flat(offset, () -> [for (ast in inner) buildAst(ast)]);
+								Flat([offset, endAt], () -> buildAstIter(inner, endAt));
 							case _: null; // never
 						}
 					case _: null; // never

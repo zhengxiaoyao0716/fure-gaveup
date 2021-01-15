@@ -1,26 +1,10 @@
+package collection;
+
 import fure.collection.RArr;
 import fure.collection.RArr.RArrIterator;
-import fure.Macro.hxx;
 
-class Main {
-	static function main() {
-		var obj = hxx(
-			<Test 'root'>
-				// comments
-				<Test ['children'] />
-				/* comments */
-				{ hxx(<Test {msg: 'nested'}/>); }
-				<AbsTest name='test inner'>
-					[ hxx(<Test msg='array' />) ]
-					<>
-						<Test msg='flat'/>
-						[ for (i in 0...Math.ceil(Math.random())) hxx(<Test key=(i) msg='flat' />) ]
-					</>
-					'qwe' [] {} (123)
-				</AbsTest>
-			</Test>
-		);
-
+class RArr_test {
+	public static function test() {
 		var raw:Array<Dynamic> = [0, [1, [2]], [], 3, [[4], 5], 6];
 		var arr0 = RArr.from(raw, (val:Dynamic) -> Std.isOfType(val, Array) ? Or.B((val : Array<Dynamic>)) : Or.A((val : Int)));
 		trace(arr0.flat());
@@ -54,18 +38,5 @@ class Main {
 		var arr3 = RArrIterator.toRArr(arr2);
 		trace(arr3.flat());
 		trace(arr3.length);
-	}
-}
-
-abstract AbsTest(Any) {
-	public function new(props:{name:String}, inner:Array<Any>) {
-		this = props.name;
-		trace(this + ': ' + inner);
-	}
-}
-
-class Test {
-	public function new(props:Any, inner:Array<Any>) {
-		trace(props);
 	}
 }

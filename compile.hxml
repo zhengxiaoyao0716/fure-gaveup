@@ -1,5 +1,5 @@
 --class-path test
---main Main
+--main Test
 --library fure
 --each
 
