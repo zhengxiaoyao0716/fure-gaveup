@@ -3,13 +3,13 @@
 --library fure
 --each
 
-# JavaScript
---js bin/js/main.js
---next
-# # JavaScript (es6)
-# --js bin/js_es/main.js
-# --define js-es=6
+# # JavaScript
+# --js bin/js/main.js
 # --next
+# JavaScript (es6)
+--js bin/js_es/main.js
+--define js-es=6
+--next
 
 # # Python
 # --python bin/py/main.py

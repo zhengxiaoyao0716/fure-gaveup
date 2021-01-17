@@ -1,5 +1,6 @@
 package fure.hxx;
 
+import haxe.ds.Either;
 import haxe.Exception;
 import fure.collection.RArr;
 
@@ -276,16 +277,16 @@ abstract Hxx(String) from String {
 		return arr;
 	}
 
-	static function getAstOffset(nodes:Or<AstBuilder, RArrIterable<AstBuilder>>):Int
+	static function getAstOffset(nodes:Either<AstBuilder, RArrIterable<AstBuilder>>):Int
 		return switch (nodes) {
-			case A(one):
+			case Left(one):
 				switch (one) {
 					case Code(offset, _): offset;
 					case _: 0;
 				}
-			case B(_.iterator() => nodes):
+			case Right(_.iterator() => nodes):
 				switch (nodes.next()) {
-					case A(one):
+					case Left(one):
 						switch (one) {
 							case Node(offset, _): offset;
 							case Flat(offset): offset;
@@ -295,29 +296,29 @@ abstract Hxx(String) from String {
 				}
 		}
 
-	static function buildAst(nodes:Or<AstBuilder, RArrIterable<AstBuilder>>, endAt:Int):Ast {
+	static function buildAst(nodes:Either<AstBuilder, RArrIterable<AstBuilder>>, endAt:Int):Ast {
 		return switch (nodes) {
-			case A(one):
+			case Left(one):
 				switch (one) {
 					case Code(offset, src): Code([offset, endAt], src);
 					case _: null; // never
 				}
-			case B(_.iterator() => nodes):
+			case Right(_.iterator() => nodes):
 				switch (nodes.next()) {
-					case A(one):
+					case Left(one):
 						switch (one) {
 							case Node(offset, tag):
 								var props = nodes.next();
 								var inner = switch (nodes.next()) {
-									case A(_): null;
-									case B(_.iterator() => inner): inner;
+									case Left(_): null;
+									case Right(_.iterator() => inner): inner;
 								}
 								var propsEndAt = inner.hasNext() ? getAstOffset(inner.copy().next()) : endAt;
 								Node([offset, endAt], tag, () -> buildAst(props, propsEndAt), () -> buildAstIter(inner, endAt));
 							case Flat(offset):
 								var inner = switch (nodes.next()) {
-									case A(_): null;
-									case B(_.iterator() => inner): inner;
+									case Left(_): null;
+									case Right(_.iterator() => inner): inner;
 								}
 								Flat([offset, endAt], () -> buildAstIter(inner, endAt));
 							case _: null; // never

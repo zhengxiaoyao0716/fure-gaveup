@@ -1,13 +1,9 @@
 package fure.collection;
 
+import haxe.ds.Either;
 import haxe.Exception;
 
 using fure.collection.RArr;
-
-enum Or<A, B> {
-	A(a:A);
-	B(b:B);
-}
 
 /**
  * recursion array node
@@ -104,14 +100,14 @@ class RArr<V> {
 	}
 
 	@:noUsing
-	public static function from<V, R>(root:Iterable<V>, flat:(val:V) -> Or<R, Iterable<V>>):RArr<R> {
+	public static function from<V, R>(root:Iterable<V>, flat:(val:V) -> Either<R, Iterable<V>>):RArr<R> {
 		var vals = root.toArray();
 		var rarr = new RArr<R>();
 		while (vals.length > 0) {
 			switch (flat(vals.shift())) {
-				case A(one):
+				case Left(one):
 					rarr.push(one);
-				case B(_.toArray() => arr):
+				case Right(_.toArray() => arr):
 					rarr.dive(arr.length);
 					if (arr.length == 0) rarr.rise();
 					vals = arr.concat(vals);
@@ -122,7 +118,7 @@ class RArr<V> {
 	//#endregion
 }
 
-typedef VOrRIterable<V> = Iterable<Or<V, VOrRIterable<V>>>;
+typedef VOrRIterable<V> = Iterable<Either<V, VOrRIterable<V>>>;
 typedef RArrIterable<V> = {iterator:() -> RArrIterator<V>};
 
 @:using(fure.collection.RArr.RArrIterator)
@@ -149,7 +145,7 @@ class RArrIterator<V> {
 		return cursor < length;
 	}
 
-	public function next():Or<V, RArrIterable<V>> {
+	public function next():Either<V, RArrIterable<V>> {
 		if (!hasNext())
 			return null;
 		cursor++;
@@ -167,14 +163,14 @@ class RArrIterator<V> {
 		}
 	}
 
-	private inline function leaf(index:Int):Or<V, RArrIterable<V>> {
+	private inline function leaf(index:Int):Either<V, RArrIterable<V>> {
 		offset++;
-		return Or.A(rarr.data[index]);
+		return Left(rarr.data[index]);
 	}
 
-	private inline function nest(mark:Mark, markX:Int, markY:Int):Or<V, RArrIterable<V>> {
+	private inline function nest(mark:Mark, markX:Int, markY:Int):Either<V, RArrIterable<V>> {
 		offset = this.markX == null ? mark[markY] : mark[markY] - this.markX;
-		return Or.B({iterator: () -> new RArrIterator(rarr, markX, markY)});
+		return Right({iterator: () -> new RArrIterator(rarr, markX, markY)});
 	}
 
 	public static inline function toRArr<V>(root:VOrRIterable<V>):RArr<V> {
