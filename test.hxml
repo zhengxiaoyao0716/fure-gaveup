@@ -1,0 +1,12 @@
+--class-path test
+--main Test
+# https://lib.haxe.org/documentation/using-haxelib/#dev
+--library fure
+--library fure-web
+--each
+
+build.hxml
+--next
+
+# Interpret
+--interp

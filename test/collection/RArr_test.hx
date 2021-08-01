@@ -1,49 +1,55 @@
 package collection;
 
+import fure.Assert;
 import fure.collection.RArr;
 import fure.collection.RArr.RArrIterator;
 
 class RArr_test {
 	public static function test() {
-		var raw:Array<Dynamic> = [0, [1, [2]], [], 3, [[4], 5], 6];
-		var arr0 = RArr.from(raw, (val:Dynamic) -> Std.isOfType(val, Array) ? Right((val : Array<Dynamic>)) : Left((val : Int)));
-		trace(arr0.flat());
-		trace(arr0.length);
+		var raw:Array<Dynamic> = ['A', ['B', ['C']], [], [['D'], ['E', 'F'], 'G'], 'H'];
+
+		var arr0 = RArr.from(raw, (val:Dynamic) -> Std.isOfType(val, Array) ? Right((val : Array<Dynamic>)) : Left((val : String)));
 
 		var arr1 = RArrIterator.toRArr([
-			Left(0),
-			Right([Left(1), Right([Left(2)])]),
+			Left('A'),
+			Right([Left('B'), Right([Left('C')])]),
 			Right([]),
-			Left(3),
-			Right([Right([Left(4)]), Left(5)]),
-			Left(6)
+			Right([Right([Left('D')]), Right([Left('E'), Left('F')]), Left('G')]),
+			Left('H'),
 		]);
-		trace(arr1.flat());
-		trace(arr1.length);
 
-		var arr2 = new fure.collection.RArr<Int>();
-		arr2.push(0);
+		var arr2 = new fure.collection.RArr<String>();
+		arr2.push('A');
 		arr2.dive();
-		arr2.push(1);
+		arr2.push('B');
 		arr2.dive();
-		arr2.push(2);
+		arr2.push('C');
 		arr2.rise();
 		arr2.rise();
 		arr2.dive();
 		arr2.rise();
-		arr2.push(3);
 		arr2.dive();
 		arr2.dive();
-		arr2.push(4);
+		arr2.push('D');
 		arr2.rise();
-		arr2.push(5);
+		arr2.dive();
+		arr2.push('E');
+		arr2.push('F');
 		arr2.rise();
-		arr2.push(6);
-		trace(arr2.flat());
-		trace(arr2.length);
+		arr2.push('G');
+		arr2.rise();
+		arr2.push('H');
 
 		var arr3 = RArrIterator.toRArr(arr2);
-		trace(arr3.flat());
-		trace(arr3.length);
+
+		Assert.allOk([
+			assertEquals(raw, RArrIterator.deepToArray(arr0)),
+			assertEquals(raw, RArrIterator.deepToArray(arr1)),
+			assertEquals(raw, RArrIterator.deepToArray(arr2)),
+			assertEquals(raw, RArrIterator.deepToArray(arr3)),
+			assertEquals(arr0.flat(), arr1.flat()),
+			assertEquals(arr0.flat(), arr2.flat()),
+			assertEquals(arr0.flat(), arr3.flat()),
+		]);
 	}
 }

@@ -5,7 +5,6 @@ using Lambda;
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
-import haxe.macro.Type.BaseType;
 #end
 
 @:using(fure.hxx.Ast.AstTools)
@@ -50,54 +49,8 @@ class AstTools {
 	}
 
 	#if macro
-	public static function parse(ast:Ast, pos:Position):Expr {
-		#if debug
-		return switch (ast) {
-			case Node(offset, tag, props, inner):
-				var exprs = [
-					{
-						var propsVal = props().parse(pos);
-						macro var props = $propsVal;
-					},
-					{
-						var inner = inner == null ? [] : inner();
-						if (inner.empty()) {
-							macro var inner = [];
-						} else {
-							var innerVal = macro $a{inner.map(ast -> ast.parse(pos))};
-							macro var inner = fure.hxx.Ast.Nodes.flat($innerVal);
-						}
-					},
-					{
-						if (isClass(tag)) {
-							var type = try {
-								Context.getType(tag);
-							} catch (error) {
-								return Context.error(error.message, pos + offset);
-							}
-							var type:BaseType = switch (type) {
-								case TInst(_.get() => field, _): field;
-								case TAbstract(_.get() => field, _): field;
-								case _: return Context.error('Tag "${tag}" could not used as Hxx component', pos + offset);
-							}
-							var path = {name: type.name, pack: type.pack};
-							macro new $path(props, inner);
-						} else {
-							var tag = tag.split('.');
-							macro $p{tag}(props, inner);
-						}
-					}
-				];
-				macro $b{exprs};
-			case Flat(_, inner):
-				var innerVal = macro $a{inner == null ? [] : inner().map(ast -> ast.parse(pos))};
-				macro new fure.hxx.Ast.Nodes($innerVal);
-			case Code(offset, src): Context.parseInlineString(src, pos + offset);
-		}
-		#else
-		return Context.parseInlineString(ast.dumps(), pos);
-		#end
-	}
+	public static inline function parse(ast:Ast, pos:Position):Expr
+		return Context.parse(ast.dumps(), pos);
 	#end
 
 	static inline function isClass(tag:String):Bool {
@@ -110,9 +63,11 @@ class AstTools {
 class Nodes {
 	public final arr:Array<Any>;
 
-	public inline function new(nodes:Array<Any>)
-		this.arr = nodes.flatMap(node -> Std.isOfType(node, Array) ? (node : Array<Any>) : [node]);
+	public function new(nodes:Array<Any>) {
+		arr = nodes.flatMap(node -> Std.isOfType(node, Array) ? (node : Array<Any>) : [node]);
+	}
 
-	public static function flat(arr:Array<Any>):Array<Any>
+	public static function flat(arr:Array<Any>):Array<Any> {
 		return arr.flatMap(node -> Std.isOfType(node, Nodes) ? flat((node : Nodes).arr) : [node]);
+	}
 }

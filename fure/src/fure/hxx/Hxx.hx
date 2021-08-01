@@ -23,7 +23,7 @@ abstract Hxx(String) from String {
 		}
 	}
 
-	//#region translate
+	// #region translate
 
 	function takeNode(offset:Int, builder:RArr<AstBuilder>):Int {
 		var state = State.Begin;
@@ -152,10 +152,8 @@ abstract Hxx(String) from String {
 		return offset;
 	}
 
-	static inline function isSpace(c:Int) {
-		// as StringTools.isSpace
-		return (c > 8 && c < 14) || c == 32;
-	}
+	static inline function isSpace(c:Int)
+		return (c > 8 && c < 14) || c == 32;	// as StringTools.isSpace
 
 	function skipSpace(offset:Int):Int {
 		while (offset < this.length) {
@@ -258,7 +256,7 @@ abstract Hxx(String) from String {
 		return offset;
 	}
 
-	//#endregion
+	// #endregion
 
 	static function buildAstIter(builder:RArrIterator<AstBuilder>, endAt:Int):Array<Ast> {
 		if (!builder.hasNext())
@@ -360,9 +358,8 @@ class HxxAstException extends Exception {
 		}
 	}
 
-	public override inline function toString():String {
-		return Type.getClassName(Type.getClass(this)) + ": " + message + " at line " + lineAt + " char " + charAt;
-	}
+	public override inline function toString():String
+		return '${Type.getClassName(Type.getClass(this))}: $message at line $lineAt char $charAt';
 }
 
 enum AstBuilder {

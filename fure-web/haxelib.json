@@ -1,5 +1,5 @@
 {
-  "name": "fure",
+  "name": "fure-web",
   "url": "https://github.com/zheng0716/fure/",
   "license": "MIT",
   "tags": [
@@ -15,5 +15,6 @@
     "zhengxiaoyao0716"
   ],
   "dependencies": {
+    "fure": ""
   }
 }

@@ -3,6 +3,7 @@ package fure.collection;
 import haxe.ds.Either;
 import haxe.Exception;
 
+using Lambda;
 using fure.collection.RArr;
 
 /**
@@ -15,16 +16,16 @@ using fure.collection.RArr;
 
 private typedef Mark = Array<Int>; // [riseAt1,length1,riseAt2,length2,...]
 
-private typedef Builder = Array<Int>; // [index, size, rise]
+private typedef Builder = Array<Int>; // [index, length, rise]
 
 /**
  * recursion array
  *
  * raw    : [  A,  [  B,  [  C  ]  ],  [ _ ],  [  [  D  ],  [  E,  F  ],  G ],  H  ]
  * index  : [  0      1      2          (3)          4         5   6      7     8  ]
- * length : [  4      2      1           0          3,3        2                   ]
  * riseAt : [         3      3           4          8 5        7                   ]
- * depth  : [       +1-0   +1-2         +-1        +2-1     +1-0   +0-1  +0-1      ]
+ * length : [  4      2      1           0          3,1        2                   ]
+ * depth  : [       +1-0   +1-2        +1-1        +2-1     +1-0   +0-1  +0-1      ]
  */
 @:allow(fure.collection.RArrIterator)
 @:using(fure.collection.RArr.RArr)
@@ -32,9 +33,10 @@ class RArr<V> {
 	final data:Array<V> = [];
 	final mark:Map<Int, Mark> = [];
 	final stack:Array<Builder> = [];
+
 	public var depth(default, null):Int = 0;
 
-	//#region builder
+	// #region builder
 	public function new() {
 		stack.push([-1, 0, 0]);
 	}
@@ -61,7 +63,9 @@ class RArr<V> {
 
 		var index = builder[0];
 		var length = builder[1];
-		if (length == 0) data.push(null);
+		if (length == 0)
+			data.push(null);
+
 		var riseAt = data.length;
 		if (mark.exists(index))
 			mark[index].unshift(length);
@@ -77,25 +81,21 @@ class RArr<V> {
 		builder[1]++;
 		return --builder[2] == 0 ? rise() : depth;
 	}
-	//#endregion
 
-	//#region array & nodes
+	// #endregion
+	// #region array & nodes
 	public var length(get, never):Int;
 
-	public inline function get_length():Int {
+	public inline function get_length():Int
 		return stack[0][1];
-	}
 
-	public inline function flat():Array<V> {
+	public inline function flat():Array<V>
 		return data;
-	}
 
 	public inline function iterator():RArrIterator<V>
 		return new RArrIterator(this);
 
 	public static function toArray<V>(elements:Iterable<V>):Array<V> {
-		if (Std.isOfType(elements, Array))
-			return cast(elements);
 		return [for (ele in elements) ele];
 	}
 
@@ -109,13 +109,15 @@ class RArr<V> {
 					rarr.push(one);
 				case Right(_.toArray() => arr):
 					rarr.dive(arr.length);
-					if (arr.length == 0) rarr.rise();
+					if (arr.length == 0)
+						rarr.rise();
 					vals = arr.concat(vals);
 			}
 		}
 		return rarr;
 	}
-	//#endregion
+
+	// #endregion
 }
 
 typedef VOrRIterable<V> = Iterable<Either<V, VOrRIterable<V>>>;
@@ -138,12 +140,11 @@ class RArrIterator<V> {
 
 	public var length(get, never):Int;
 
-	private function get_length():Int
+	private inline function get_length():Int
 		return markX == null ? rarr.stack[0][1] : rarr.mark[markX][markY + 1];
 
-	public inline function hasNext():Bool {
+	public inline function hasNext():Bool
 		return cursor < length;
-	}
 
 	public function next():Either<V, RArrIterable<V>> {
 		if (!hasNext())
@@ -173,8 +174,14 @@ class RArrIterator<V> {
 		return Right({iterator: () -> new RArrIterator(rarr, markX, markY)});
 	}
 
-	public static inline function toRArr<V>(root:VOrRIterable<V>):RArr<V> {
+	public static inline function toRArr<V>(root:VOrRIterable<V>):RArr<V>
 		return RArr.from(root, val -> val);
+
+	public static function deepToArray<V>(root:VOrRIterable<V>):Array<Dynamic> {
+		return root.map(item -> switch (item) {
+			case Left(one): cast(one);
+			case Right(arr): cast(deepToArray(arr));
+		});
 	}
 
 	public inline function copy():RArrIterator<V> {
@@ -190,7 +197,7 @@ class RArrIterator<V> {
 		return iter;
 	}
 
-	public static inline function take<V>(iter:Iterator<V>, num:Int):Array<V> {
+	public static function take<V>(iter:Iterator<V>, num:Int):Array<V> {
 		return [for (i in 0...num) iter.next()];
 	}
 }

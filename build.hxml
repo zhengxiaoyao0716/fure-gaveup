@@ -1,0 +1,49 @@
+# # JavaScript
+# --js bin/js/main.js
+# --next
+# # JavaScript (es6)
+# --js bin/js_es/main.js
+# --define js-es=6
+# --next
+
+# # Python
+# --python bin/py/main.py
+# --next
+
+# # JVM
+# --library hxjava
+# --jvm bin/jvm/main.jar
+# --next
+# # Java
+# --library hxjava
+# --java bin/jv
+# --next
+
+# # C#
+# --library hxcs
+# --cs bin/cs
+# --next
+
+# # C/C++
+# --library hxcpp
+# --cpp bin/cpp
+# --next
+
+# # Lua
+# --lua bin/lua/main.lua
+# --next
+
+# # PHP
+# --php bin/php
+# --next
+
+# # Neko
+# --neko bin/nk/main.n
+# --next
+
+# # HashLink (VM)
+# --library hashlink
+# --hl bin/hl_vm/main.hl
+# --next
+# # HashLink (C)
+# --hl bin/hl_c/main.c
