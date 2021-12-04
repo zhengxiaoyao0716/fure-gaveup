@@ -3,10 +3,28 @@ package fure.hxx;
 import haxe.ds.Either;
 import haxe.Exception;
 import fure.collection.RArr;
+#if macro
+import haxe.macro.Context;
+import haxe.macro.Expr;
 
+using haxe.macro.Tools;
+using fure.Tools;
+#end
 using StringTools;
 
 abstract Hxx(String) from String {
+	#if macro
+	@:noUsing
+	public static function parse(expr:Expr, crt:ExprOf<String>):Expr {
+		var crt = crt.getValue();
+		return switch (expr) {
+			case macro @:markup $v{(src : String)} : new Hxx(src).ast().parse(crt, expr.pos);
+			case macro $v{(src : String)} : new Hxx(src).ast().parse(crt, expr.pos);
+			case _: Context.error('Hxx markup string expected instead of ' + Context.typeof(expr).toString(), expr.pos);
+		};
+	}
+	#end
+
 	public inline function new(src:String)
 		this = src;
 
@@ -42,6 +60,8 @@ abstract Hxx(String) from String {
 						}
 						var endAt = takeBlock(offset);
 						if (endAt <= offset)
+							endAt = takeTextNode(offset);
+						if (endAt <= offset)
 							throw new HxxAstException('Expected `<`', this, offset);
 						var block = this.substring(offset, endAt);
 
@@ -64,7 +84,7 @@ abstract Hxx(String) from String {
 							builder.push(Flat(offset));
 							state = Inner;
 							offset = skipSpace(offset + 2);
-						default:
+						case _:
 							var endAt = takeIdent(offset + 1);
 							var tag = this.substring(offset + 1, endAt);
 
@@ -103,7 +123,7 @@ abstract Hxx(String) from String {
 							state = Inner;
 							offset = skipSpace(offset + 1);
 
-						default:
+						case _:
 							if (props == null)
 								throw new HxxAstException('Expected `>`', this, offset);
 							var endAt = takeBlock(offset);
@@ -124,9 +144,11 @@ abstract Hxx(String) from String {
 							offset = skipSpace(offset + 1);
 							var endAt = takeBlock(offset);
 							if (endAt <= offset)
+								endAt = takePropValue(offset - 1);
+							if (endAt <= offset)
 								throw new HxxAstException('Expected block', this, offset);
 							var value = this.substring(offset, endAt);
-							props.push('$name: $value');
+							props.push('"$name": $value');
 							offset = skipSpace(endAt);
 					}
 
@@ -153,7 +175,7 @@ abstract Hxx(String) from String {
 	}
 
 	static inline function isSpace(c:Int)
-		return (c > 8 && c < 14) || c == 32;	// as StringTools.isSpace
+		return (c > 8 && c < 14) || c == 32; // as StringTools.isSpace
 
 	function skipSpace(offset:Int):Int {
 		while (offset < this.length) {
@@ -240,7 +262,7 @@ abstract Hxx(String) from String {
 						quote = charCode;
 					case '"'.code:
 						quote = charCode;
-					default:
+					case _:
 						if (closer.length <= 0)
 							return offset;
 						if (charCode == closer[closer.length - 1])
@@ -254,6 +276,34 @@ abstract Hxx(String) from String {
 				return offset;
 		}
 		return offset;
+	}
+
+	function takeTextNode(startIndex:Int = 0):Int {
+		var offset = startIndex;
+		while (offset < this.length) {
+			var charCode = this.fastCodeAt(offset);
+			switch (charCode) {
+				case ' '.code | '\n'.code | '<'.code:
+					return offset;
+				case _:
+					offset++;
+			}
+		}
+		return -1;
+	}
+
+	function takePropValue(startIndex:Int = 0):Int {
+		var offset = startIndex;
+		while (offset < this.length) {
+			var charCode = this.fastCodeAt(offset);
+			switch (charCode) {
+				case ' '.code | '\n'.code | '/'.code | '>'.code:
+					return offset;
+				case _:
+					offset++;
+			}
+		}
+		return -1;
 	}
 
 	// #endregion

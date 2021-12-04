@@ -1,5 +1,6 @@
 package collection;
 
+import haxe.Exception;
 import fure.Assert;
 import fure.collection.RArr;
 import fure.collection.RArr.RArrIterator;

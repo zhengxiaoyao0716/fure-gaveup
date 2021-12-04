@@ -27,21 +27,32 @@ abstract Assert(String) from String to String {
 	}
 
 	@:noUsing
-	public static function value<V>(expected:V, desc:String, value:V):Assert {
+	public static function value<V>(expected:V, desc:String, value:() -> V):Assert {
+		var value = tryCatch(desc, value());
 		return Tools.equlas(expected, value) ? '' : '$desc should be $expected, actrual: $value';
 	}
 
 	@:noUsing
-	public static function equals<V>(desc1:String, value1:V, desc2:String, value2:V):Assert {
+	public static function equals<V>(desc1:String, value1:() -> V, desc2:String, value2:() -> V):Assert {
+		var value1 = tryCatch(desc1, value1());
+		var value2 = tryCatch(desc2, value2());
 		return Tools.equlas(value1, value2) ? '' : '$desc2 should equals $desc1, expected: $value1, actrual: $value2';
 	}
 }
 
+private macro function tryCatch<V>(desc:ExprOf<String>, expr:Expr):Expr {
+	return macro try {
+		$expr;
+	} catch (e) {
+		return 'execute ' + $desc + ' failed, reason: ' + e;
+	};
+}
+
 macro function assertValue(expected:Expr, actual:Expr):Expr
-	return macro fure.Assert.value($expected, $v{actual.toString()}, $actual);
+	return macro fure.Assert.value($expected, $v{actual.toString()}, () -> $actual);
 
 macro function assertEquals<V>(expected:Expr, actual:Expr):Expr
-	return macro fure.Assert.equals($v{expected.toString()}, $expected, $v{actual.toString()}, $actual);
+	return macro fure.Assert.equals($v{expected.toString()}, () -> $expected, $v{actual.toString()}, () -> $actual);
 
 class AssertException extends Exception {
 	public var src:String;

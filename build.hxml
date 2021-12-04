@@ -1,9 +1,9 @@
 # # JavaScript
 # --js bin/js/main.js
 # --next
-# # JavaScript (es6)
-# --js bin/js_es/main.js
-# --define js-es=6
+# JavaScript (es6)
+--js bin/js_es/main.js
+--define js-es=6
 # --next
 
 # # Python

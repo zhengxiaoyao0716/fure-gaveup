@@ -1,0 +1,18 @@
+{
+	"folders": [
+		{
+			"path": "."
+		}
+	],
+	"settings": {
+		"files.exclude": {
+			"**/.haxelib": true
+		},
+		"files.watcherExclude": {
+			"**/bin/**": true
+		},
+		"search.exclude": {
+			"**/bin/**": true
+		}
+	}
+}
