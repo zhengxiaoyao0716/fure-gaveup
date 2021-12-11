@@ -1,12 +1,9 @@
 package fure.web;
 
-import fure.web.Element.Elements;
+import fure.web.Element;
 
-abstract Stylesheets(Elements) {
-	public function new(hrefs:Array<String>) {
-		this = [
-			for (href in hrefs)
-				new Element('link', ['rel' => 'stylesheet', 'href' => href])
-		];
+abstract Stylesheets(Elements<String>) {
+	public function new(hrefs:VarArgs<String>) {
+		this = new Elements<String>('link', hrefs, href -> ['rel' => 'stylesheet', 'href' => href], _ -> null);
 	}
 }

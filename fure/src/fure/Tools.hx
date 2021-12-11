@@ -7,17 +7,12 @@ import haxe.macro.Expr;
 using haxe.macro.Tools;
 #end
 
-private #if !macro macro #end inline function fureVersion():ExprOf<String>
-	return macro $v{Context.definedValue('fure')};
+typedef Optional<T> = fure.rx.Optional<T>;
+typedef Pipeable<T> = fure.rx.Pipeable<T>;
 
-final FURE_VERSION = fureVersion();
-final FURE_WEBSITE = 'https://github.com/zhengxiaoyao0716/furegame';
-
-inline function orElse<V>(value:Null<V>, ifNull:V):V
-	return value == null ? ifNull : value;
-
-inline function orElseGet<V>(value:Null<V>, ifNull:() -> V):V
-	return value == null ? ifNull() : value;
+@:noUsing
+macro inline function definedValue(key:ExprOf<String>):ExprOf<String>
+	return macro $v{Context.definedValue(key.getValue())};
 
 /**
  * Combine two or more structures
@@ -33,7 +28,7 @@ macro function combine(rest:Array<Expr>):Expr {
 	var allFields:Array<ObjectField> = [];
 	for (rx in rest) {
 		var trest = Context.typeof(rx);
-		switch (trest.follow()) {
+		switch trest.follow() {
 			case TAnonymous(_.get() => tr):
 				// for each parameter we create a tmp var with an unique name.
 				// we need a tmp var in the case, the parameter is the result of a complex expression.
@@ -54,34 +49,12 @@ macro function combine(rest:Array<Expr>):Expr {
 	return macro $b{block};
 }
 
-function toIterator(v:Dynamic):Null<Iterator<Any>> {
-	if (Std.isOfType(v, Array))
-		return v.iterator();
-	if (Reflect.isFunction(v.iterator))
-		return v.iterator();
-	if (Reflect.isFunction(v.next) && Reflect.isFunction(v.hasNext))
-		return cast(v);
-	return null;
-}
+@:noUsing
+inline function toIterator(v:Dynamic):Null<Iterator<Any>>
+	return fure.ds.Iter.toIterator(v);
 
-inline function keyValueIterable<K, V>(map:Map<K, V>):Iterable<{key:K, value:V}>
-	return {iterator: () -> map.keyValueIterator()};
+inline function equals<V>(one:V, oth:V):Bool
+	return fure.ds.Iter.equals(one, oth);
 
-function equlas<V>(one:V, oth:V):Bool {
-	if (one == oth)
-		return true;
-	if (Reflect.isEnumValue(one) && Reflect.isEnumValue(oth))
-		return Type.enumEq(cast(one), cast(oth));
-	var one_iter = toIterator(one);
-	if (one_iter == null)
-		return false;
-	var oth_iter = toIterator(oth);
-	if (oth_iter == null)
-		return false;
-	while (one_iter.hasNext() && oth_iter.hasNext()) {
-		var one = one_iter.next(), oth = oth_iter.next();
-		if (!equlas(one, oth))
-			return false;
-	}
-	return !one_iter.hasNext() && !oth_iter.hasNext();
-}
+inline function keyValueIterable<K, V>(map:Map<K, V>):fure.ds.Iter.KeyValueIterable<K, V>
+	return map;

@@ -1,12 +1,13 @@
-package collection;
+package fure.ds;
 
-import haxe.Exception;
-import fure.Assert;
-import fure.collection.RArr;
-import fure.collection.RArr.RArrIterator;
+import fure.log.Assert;
+import fure.ds.RArr;
+import fure.ds.RArr.RArrIterator;
 
-class RArr_test {
-	public static function test() {
+class RArrTest {
+	public inline function new() {}
+
+	public function test() {
 		var raw:Array<Dynamic> = ['A', ['B', ['C']], [], [['D'], ['E', 'F'], 'G'], 'H'];
 
 		var arr0 = RArr.from(raw, (val:Dynamic) -> Std.isOfType(val, Array) ? Right((val : Array<Dynamic>)) : Left((val : String)));
@@ -19,7 +20,7 @@ class RArr_test {
 			Left('H'),
 		]);
 
-		var arr2 = new fure.collection.RArr<String>();
+		var arr2 = new fure.ds.RArr<String>();
 		arr2.push('A');
 		arr2.dive();
 		arr2.push('B');
@@ -43,7 +44,7 @@ class RArr_test {
 
 		var arr3 = RArrIterator.toRArr(arr2);
 
-		Assert.allOk([
+		Assert.all([
 			assertEquals(raw, RArrIterator.deepToArray(arr0)),
 			assertEquals(raw, RArrIterator.deepToArray(arr1)),
 			assertEquals(raw, RArrIterator.deepToArray(arr2)),
@@ -51,6 +52,6 @@ class RArr_test {
 			assertEquals(arr0.flat(), arr1.flat()),
 			assertEquals(arr0.flat(), arr2.flat()),
 			assertEquals(arr0.flat(), arr3.flat()),
-		]);
+		]) !;
 	}
 }

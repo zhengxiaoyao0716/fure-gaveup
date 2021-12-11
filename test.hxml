@@ -1,9 +1,14 @@
+# -D FURE_WEB_HXX_CRT=fure.web.Document.createElement
+# -D FURE_LOG_LEVEL=WARN
+# -D FURE_LOG_FULL_TAG
+# -D FURE_LOG_NO_COLOR
+
 --class-path test
 --main Test
-# -D FURE_WEB_HXX_CRT=Document.createElement
 # https://lib.haxe.org/documentation/using-haxelib/#dev
 --library fure
 --library fure-web
+--dce full
 --each
 
 build.hxml

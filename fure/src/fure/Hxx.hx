@@ -1,8 +1,9 @@
-package fure.hxx;
+package fure;
 
+import fure.ds.Ast;
+import fure.ds.RArr;
 import haxe.ds.Either;
 import haxe.Exception;
-import fure.collection.RArr;
 #if macro
 import haxe.macro.Context;
 import haxe.macro.Expr;
@@ -12,29 +13,25 @@ using fure.Tools;
 #end
 using StringTools;
 
+#if macro
+@:noUsing
+function parse(expr:Expr, crt:String):Expr {
+	return switch expr {
+		case macro @:markup $v{(src : String)} : (src : Hxx).ast().parse(crt, expr.pos);
+		case macro $v{(src : String)} : (src : Hxx).ast().parse(crt, expr.pos);
+		case _: Context.error('Hxx markup string expected instead of ' + Context.typeof(expr).toString(), expr.pos);
+	};
+}
+#end
+
 abstract Hxx(String) from String {
-	#if macro
-	@:noUsing
-	public static function parse(expr:Expr, crt:ExprOf<String>):Expr {
-		var crt = crt.getValue();
-		return switch (expr) {
-			case macro @:markup $v{(src : String)} : new Hxx(src).ast().parse(crt, expr.pos);
-			case macro $v{(src : String)} : new Hxx(src).ast().parse(crt, expr.pos);
-			case _: Context.error('Hxx markup string expected instead of ' + Context.typeof(expr).toString(), expr.pos);
-		};
-	}
-	#end
-
-	public inline function new(src:String)
-		this = src;
-
 	@:to
 	public function ast():Ast {
 		var builder = new RArr<AstBuilder>();
 		takeNode(0, builder);
 		var builder = builder.iterator();
 
-		return switch (builder.length) {
+		return switch builder.length {
 			case 0: Code([0, this.length], 'null');
 			case 1: buildAst(builder.next(), this.length);
 			case _: Flat([0, this.length], () -> buildAstIter(builder, this.length));
@@ -50,7 +47,7 @@ abstract Hxx(String) from String {
 		var props:Array<String> = null;
 
 		while (offset < this.length) {
-			switch (state) {
+			switch state {
 				case Begin:
 					if (this.fastCodeAt(offset) != '<'.code) {
 						var endAt = takeComment(offset);
@@ -73,7 +70,7 @@ abstract Hxx(String) from String {
 					if (offset + 1 >= this.length)
 						throw new HxxAstException('Missing tag', this, offset);
 
-					switch (this.fastCodeAt(offset + 1)) {
+					switch this.fastCodeAt(offset + 1) {
 						case '/'.code:
 							if (offset + 2 >= this.length)
 								throw new HxxAstException('Expected tag or `>`', this, offset);
@@ -98,7 +95,7 @@ abstract Hxx(String) from String {
 
 				case Props:
 					var charCode = this.fastCodeAt(offset);
-					switch (charCode) {
+					switch charCode {
 						case '/'.code:
 							if (props != null)
 								builder.push(Code(offset, props.length <= 0 ? 'null' : '{ ${props.join(', ')} }'));
@@ -251,7 +248,7 @@ abstract Hxx(String) from String {
 				continue;
 			}
 			if (quote == null) {
-				switch (charCode) {
+				switch charCode {
 					case '{'.code:
 						closer.push('}'.code);
 					case '['.code:
@@ -282,7 +279,7 @@ abstract Hxx(String) from String {
 		var offset = startIndex;
 		while (offset < this.length) {
 			var charCode = this.fastCodeAt(offset);
-			switch (charCode) {
+			switch charCode {
 				case ' '.code | '\n'.code | '<'.code:
 					return offset;
 				case _:
@@ -296,7 +293,7 @@ abstract Hxx(String) from String {
 		var offset = startIndex;
 		while (offset < this.length) {
 			var charCode = this.fastCodeAt(offset);
-			switch (charCode) {
+			switch charCode {
 				case ' '.code | '\n'.code | '/'.code | '>'.code:
 					return offset;
 				case _:
@@ -326,16 +323,16 @@ abstract Hxx(String) from String {
 	}
 
 	static function getAstOffset(nodes:Either<AstBuilder, RArrIterable<AstBuilder>>):Int
-		return switch (nodes) {
+		return switch nodes {
 			case Left(one):
-				switch (one) {
+				switch one {
 					case Code(offset, _): offset;
 					case _: 0;
 				}
 			case Right(_.iterator() => nodes):
-				switch (nodes.next()) {
+				switch nodes.next() {
 					case Left(one):
-						switch (one) {
+						switch one {
 							case Node(offset, _): offset;
 							case Flat(offset): offset;
 							case _: 0;
@@ -345,26 +342,26 @@ abstract Hxx(String) from String {
 		}
 
 	static function buildAst(nodes:Either<AstBuilder, RArrIterable<AstBuilder>>, endAt:Int):Ast {
-		return switch (nodes) {
+		return switch nodes {
 			case Left(one):
-				switch (one) {
+				switch one {
 					case Code(offset, src): Code([offset, endAt], src);
 					case _: null; // never
 				}
 			case Right(_.iterator() => nodes):
-				switch (nodes.next()) {
+				switch nodes.next() {
 					case Left(one):
-						switch (one) {
+						switch one {
 							case Node(offset, tag):
 								var props = nodes.next();
-								var inner = switch (nodes.next()) {
+								var inner = switch nodes.next() {
 									case Left(_): null;
 									case Right(_.iterator() => inner): inner;
 								}
 								var propsEndAt = inner.hasNext() ? getAstOffset(inner.copy().next()) : endAt;
 								Node([offset, endAt], tag, () -> buildAst(props, propsEndAt), () -> buildAstIter(inner, endAt));
 							case Flat(offset):
-								var inner = switch (nodes.next()) {
+								var inner = switch nodes.next() {
 									case Left(_): null;
 									case Right(_.iterator() => inner): inner;
 								}
@@ -377,7 +374,7 @@ abstract Hxx(String) from String {
 	}
 }
 
-enum abstract State(Int) {
+private enum abstract State(Int) {
 	var Begin;
 	var Props;
 	var Inner;

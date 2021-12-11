@@ -1,26 +1,26 @@
-package hxx_test;
+package fure;
 
-import fure.hxx.Inner.Flat;
-import fure.Assert.assertEquals;
+import fure.Hxx;
+import fure.ds.Iter;
+import fure.log.Assert;
 #if macro
-import fure.hxx.Hxx;
 import haxe.macro.Expr;
 #end
 
 using Lambda;
 using fure.Tools;
 
-private macro inline function hxx(expr:Expr):Expr
-	return Hxx.parse(expr, macro '');
+macro inline function hxx(expr:Expr):Expr
+	return Hxx.parse(expr, '');
 
-typedef Inner = fure.hxx.Inner.Inner;
+class HxxTest {
+	public inline function new() {}
 
-class Hxx_test {
-	public static function test() {
+	public function test() {
 		var hxxFormatObj = hxx(
 			<Test 'root'>
 				// comments
-				<hxx_test.Test ['children'] />
+				<fure.HxxTest.Test ['children'] />
 				/* comments */
 				{ hxx(<Test {msg: 'nested'}/>); }
 				<Test.test ('test function')/>
@@ -39,7 +39,7 @@ class Hxx_test {
 		);
 
 		var normalObj = new Test('root', [
-			new hxx_test.Test(['children']),
+			new fure.HxxTest.Test(['children']),
 			new Test({msg: 'nested'}),
 			Test.test(('test function')),
 			new AbsTest({name: 'test inner'}, [
@@ -55,7 +55,7 @@ class Hxx_test {
 			]),
 		]);
 
-		assertEquals(normalObj.toString(), hxxFormatObj.toString()).ok();
+		assertEquals(normalObj.toString(), hxxFormatObj.toString()).mustOk();
 	}
 }
 
@@ -70,17 +70,17 @@ class Test {
 	final props:Any;
 	final inner:Array<Any>;
 
-	public function new(props:Any, ?inner:Array<Any>) {
+	public function new(props:Any, ?inner:Inner) {
 		this.props = props;
-		this.inner = inner.orElse([]);
+		this.inner = Optional.ofNullable(inner) || [];
 	}
 
 	public static function test(props:Any):Any {
 		return props;
 	}
 
-	public static function flat(props:Any, inner:Array<Any>):Flat {
-		return new Flat(inner);
+	public static function flat(props:Any, inner:Any):Flat {
+		return new Flat([inner]);
 	}
 
 	public function toString():String {

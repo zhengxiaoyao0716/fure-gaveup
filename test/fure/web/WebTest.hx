@@ -1,22 +1,28 @@
-package web;
+package fure.web;
 
-import fure.Assert.assertEquals;
+import fure.Info;
+import fure.log.Assert;
 import fure.web.*;
 
 using fure.Tools;
 using StringTools;
 
-class Web_test {
-	public static function test() {
+class WebTest {
+	static final title = 'Hello Fure-Web';
+
+	public inline function new() {}
+
+	public function test() {
 		var html = '<!DOCTYPE html>
 <html lang="zh">
 
 <head>
-  <!-- [fure-web 0.0.1](https://github.com/zhengxiaoyao0716/furegame) -->
+  <!-- [fure-web ${FURE_VERSION}](${FURE_WEBSITE}) -->
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link type="image/x-icon" rel="shortcut icon" href="favicon.ico" />
-  <link rel="stylesheet" href="index.css" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <link href="favicon.ico" rel="shortcut icon" type="image/x-icon" />
+  <link href="index.css" rel="stylesheet" />
+  <link href="test.css" rel="stylesheet" />
   <title>Hello Fure-Web</title>
 </head>
 
@@ -24,9 +30,9 @@ class Web_test {
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div class="profile">
     <p class="name">Test User</p>
-    <img src="./avatar.png" class="avatar" />
+    <img class="avatar" src="./avatar.png" />
     <p class="intro">Some Intro</p>
-    <a href="mailto:test@test.com" class="email" />
+    <a class="email" href="mailto:test@test.com" />
     <div id="test"><span>123</span></div>
     test plain text
   </div>
@@ -34,17 +40,13 @@ class Web_test {
 </body>
 
 </html>
-';
+'.replace('\r\n', '\n');
 
-		assertEquals(html.replace('\r\n', '\n'), new Web_test().index().toString()).ok();
+		assertEquals(html, index().toString()) !;
 	}
 
-	private static var title = 'Hello Fure-Web';
-
-	public function new() {}
-
 	@:page('index.html')
-	public function index():Document {
+	function index():Document {
 		var user = {
 			name: 'Test User',
 			avatar: './avatar.png',
@@ -54,12 +56,12 @@ class Web_test {
 		return Document.hxx('
 		<Document lang="zh" title=title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<Stylesheets ["index.css"] />
+		<Stylesheets ["index.css", "test.css"] />
 		<Profile (user)>
 			<div id="test"><span>123</span></div>
 			"test plain text"
 		</Profile>
-		<Scripts ["index.js"] />
+		<Scripts "index.js" />
 		</Document>
 		');
 	}
@@ -73,14 +75,22 @@ typedef ProfileProps = {
 };
 
 class Profile extends Element {
+	final props:ProfileProps;
+	final inner:Inner;
+
 	public function new(props:ProfileProps, ?inner:Inner) {
-		var inner = hxx('
+		super('div', ['class' => 'profile']);
+		this.props = props;
+		this.inner = inner;
+	}
+
+	override function get_body():Inner {
+		return hxx('
 			<p classList=["name"]>${props.name}</p>
 			<img classList=["avatar"] src=${props.avatar} />
 			<p classList=["intro"]>${props.intro}</p>
 			<a classList=["email"] href=\'mailto:${props.email}\' />
 			(inner)
 		');
-		super('div', ['class' => 'profile'], inner);
 	}
 }

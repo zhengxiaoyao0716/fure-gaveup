@@ -1,9 +1,11 @@
-import collection.RArr_test;
-import hxx_test.Hxx_test;
-import web.Web_test;
+import fure.ds.RArrTest;
+import fure.HxxTest;
+import fure.web.WebTest;
+import fure.rx.PromiseTest;
 
 function main() {
-	RArr_test.test();
-	Hxx_test.test();
-	Web_test.test();
+	new RArrTest().test();
+	new HxxTest().test();
+	new WebTest().test();
+	new PromiseTest().test();
 }

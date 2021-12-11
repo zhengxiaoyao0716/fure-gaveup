@@ -1,10 +1,10 @@
-package fure.collection;
+package fure.ds;
 
 import haxe.ds.Either;
 import haxe.Exception;
 
 using Lambda;
-using fure.collection.RArr;
+using fure.ds.RArr;
 
 /**
  * recursion array node
@@ -27,8 +27,8 @@ private typedef Builder = Array<Int>; // [index, length, rise]
  * length : [  4      2      1           0          3,1        2                   ]
  * depth  : [       +1-0   +1-2        +1-1        +2-1     +1-0   +0-1  +0-1      ]
  */
-@:allow(fure.collection.RArrIterator)
-@:using(fure.collection.RArr.RArr)
+@:allow(fure.ds.RArrIterator)
+@:using(fure.ds.RArr.RArr)
 class RArr<V> {
 	final data:Array<V> = [];
 	final mark:Map<Int, Mark> = [];
@@ -76,7 +76,7 @@ class RArr<V> {
 		return appendElement();
 	}
 
-	private inline function appendElement() {
+	inline function appendElement() {
 		var builder = stack[stack.length - 1];
 		builder[1]++;
 		return --builder[2] == 0 ? rise() : depth;
@@ -104,7 +104,7 @@ class RArr<V> {
 		var vals = root.toArray();
 		var rarr = new RArr<R>();
 		while (vals.length > 0) {
-			switch (flat(vals.shift())) {
+			switch flat(vals.shift()) {
 				case Left(one):
 					rarr.push(one);
 				case Right(_.toArray() => arr):
@@ -123,7 +123,7 @@ class RArr<V> {
 typedef VOrRIterable<V> = Iterable<Either<V, VOrRIterable<V>>>;
 typedef RArrIterable<V> = {iterator:() -> RArrIterator<V>};
 
-@:using(fure.collection.RArr.RArrIterator)
+@:using(fure.ds.RArr.RArrIterator)
 class RArrIterator<V> {
 	final rarr:RArr<V>;
 	final markX:Null<Int>;
@@ -140,7 +140,7 @@ class RArrIterator<V> {
 
 	public var length(get, never):Int;
 
-	private inline function get_length():Int
+	inline function get_length():Int
 		return markX == null ? rarr.stack[0][1] : rarr.mark[markX][markY + 1];
 
 	public inline function hasNext():Bool
@@ -164,12 +164,12 @@ class RArrIterator<V> {
 		}
 	}
 
-	private inline function leaf(index:Int):Either<V, RArrIterable<V>> {
+	inline function leaf(index:Int):Either<V, RArrIterable<V>> {
 		offset++;
 		return Left(rarr.data[index]);
 	}
 
-	private inline function nest(mark:Mark, markX:Int, markY:Int):Either<V, RArrIterable<V>> {
+	inline function nest(mark:Mark, markX:Int, markY:Int):Either<V, RArrIterable<V>> {
 		offset = this.markX == null ? mark[markY] : mark[markY] - this.markX;
 		return Right({iterator: () -> new RArrIterator(rarr, markX, markY)});
 	}
@@ -178,7 +178,7 @@ class RArrIterator<V> {
 		return RArr.from(root, val -> val);
 
 	public static function deepToArray<V>(root:VOrRIterable<V>):Array<Dynamic> {
-		return root.map(item -> switch (item) {
+		return root.map(item -> switch item {
 			case Left(one): cast(one);
 			case Right(arr): cast(deepToArray(arr));
 		});
