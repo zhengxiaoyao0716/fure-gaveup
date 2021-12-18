@@ -1,18 +1,20 @@
 package fure.web;
 
 import fure.Info;
-import fure.log.Assert;
+import fure.rx.Promise;
+import fure.rx.State;
+import fure.test.Assert;
 import fure.web.*;
 
 using fure.Tools;
 using StringTools;
 
 class WebTest {
-	static final title = 'Hello Fure-Web';
+	static final lang:State<String> = 'zh';
 
 	public inline function new() {}
 
-	public function test() {
+	public function test():Promise<Any> {
 		var html = '<!DOCTYPE html>
 <html lang="zh">
 
@@ -42,19 +44,20 @@ class WebTest {
 </html>
 '.replace('\r\n', '\n');
 
-		assertEquals(html, index().toString()) !;
+		return index().onSuccess(document -> assertEquals(html, document.toString()) !);
 	}
 
 	@:page('index.html')
-	function index():Document {
-		var user = {
-			name: 'Test User',
-			avatar: './avatar.png',
-			intro: 'Some Intro',
-			email: 'test@test.com',
+	function index():Promise<Document> {
+		var title:State<String> = 'Hello Fure-Web';
+		var user:ProfileProps = {
+			name: '',
+			avatar: '',
+			intro: '',
+			email: '',
 		};
-		return Document.hxx('
-		<Document lang="zh" title=title>
+		var document = Document.hxx('
+		<Document lang=lang title=title>
 		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 		<Stylesheets ["index.css", "test.css"] />
 		<Profile (user)>
@@ -64,32 +67,30 @@ class WebTest {
 		<Scripts "index.js" />
 		</Document>
 		');
+		return Promise.all([
+			user.name.set('Test User'),
+			user.avatar.set('./avatar.png'),
+			user.intro.set('Some Intro'),
+			user.email.set('test@test.com'),
+		]).onSuccessThen(_ -> document);
 	}
 }
 
 typedef ProfileProps = {
-	name:String,
-	avatar:String,
-	intro:String,
-	email:String,
+	final name:State<String>;
+	final avatar:State<String>;
+	final intro:State<String>;
+	final email:State<String>;
 };
 
 class Profile extends Element {
-	final props:ProfileProps;
-	final inner:Inner;
-
 	public function new(props:ProfileProps, ?inner:Inner) {
 		super('div', ['class' => 'profile']);
-		this.props = props;
-		this.inner = inner;
-	}
-
-	override function get_body():Inner {
-		return hxx('
+		this.body = hxx('
 			<p classList=["name"]>${props.name}</p>
 			<img classList=["avatar"] src=${props.avatar} />
 			<p classList=["intro"]>${props.intro}</p>
-			<a classList=["email"] href=\'mailto:${props.email}\' />
+			<a classList=["email"] href=(${props.email.pipe(email -> 'mailto:$email')}) />
 			(inner)
 		');
 	}

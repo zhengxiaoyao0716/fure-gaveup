@@ -1,10 +1,11 @@
 package fure.rx;
 
+import haxe.Timer;
 import haxe.Exception;
 
 @:using(fure.rx.Promise)
 enum Status<V> {
-	Pending(raise:Exception->Void);
+	Pending(reject:Exception->Void);
 	Resolved(value:V);
 	Rejected(error:Exception);
 }
@@ -33,15 +34,15 @@ abstract Promise<V>(PromiseLike<V>) from PromiseLike<V> to PromiseLike<V> {
 
 	@:from
 	@:noUsing
-	public static inline function future<V>(task:Null<Future<V>->Void>):Promise<V>
+	public static inline function future<V>(task:Future<V>->Void):Promise<V>
 		return new Future(task);
 
-	public static function toString<V>(status:Status<V>):String {
-		return switch status {
-			case Pending(then): 'pending($then)';
-			case Resolved(value): 'resolved($value)';
-			case Rejected(error): 'rejected($error)';
-		}
+	public static inline function invoke<V>(task:() -> Promise<V>):Promise<V>
+		return Result.invoke(task);
+
+	@:noUsing
+	public static inline function delay<V>(task:() -> Promise<V>, delay:Int):Promise<V> {
+		return Future.delay(task, delay);
 	}
 
 	public static function value<V>(status:Status<V>):Null<V> {
@@ -111,6 +112,8 @@ abstract Promise<V>(PromiseLike<V>) from PromiseLike<V> to PromiseLike<V> {
 			final array:Array<Null<V>> = [];
 			var pendings = 1;
 			for (promise in promises) {
+				if (pendings <= 0)
+					return;
 				pendings++;
 				final index = array.length;
 				array.push(null);
@@ -119,6 +122,8 @@ abstract Promise<V>(PromiseLike<V>) from PromiseLike<V> to PromiseLike<V> {
 					if (--pendings == 0)
 						future.setSuccess(array);
 				}).onFailure(error -> {
+					if (pendings <= 0)
+						return;
 					pendings = 0;
 					future.setFailure(error);
 				});
@@ -132,8 +137,12 @@ abstract Promise<V>(PromiseLike<V>) from PromiseLike<V> to PromiseLike<V> {
 		return future(future -> {
 			var pendings = 1;
 			for (promise in promises) {
+				if (pendings <= 0)
+					return;
 				pendings++;
 				promise.onSuccess(value -> {
+					if (pendings <= 0)
+						return;
 					pendings = 0;
 					future.setSuccess(value);
 				}).onFailure(error -> {
@@ -159,20 +168,26 @@ class Future<V> {
 			task(this);
 	}
 
-	public inline function setSuccess(value:V) {
-		setComplete(Resolved(value));
+	public static function delay<V>(task:() -> PromiseLike<V>, delay:Int):Future<V> {
+		return new Future(future -> Timer.delay(() -> {
+			Promise.invoke(task).onComplete(future.setComplete);
+		}, delay));
 	}
 
-	public inline function setFailure(error:Exception) {
+	public inline function setSuccess(value:V)
+		setComplete(Resolved(value));
+
+	public inline function setFailure(error:Exception)
 		setComplete(Rejected(error));
-	}
 
 	public function setComplete(status:Status<V>) {
-		if (!this.status.match(Pending(_)))
-			throw new PromiseException('future has already completed');
-		this.status = status;
-		if (status.match(Pending(_)))
+		// if (!this.status.match(Pending(_)))
+		// 	throw new PromiseException('future has already completed');
+		// if (status.match(Pending(_)))
+		// 	throw new PromiseException('status should not pending');
+		if (!this.status.match(Pending(_)) || status.match(Pending(_)))
 			return;
+		this.status = status;
 		while (!listeners.isEmpty()) {
 			var listener = listeners.pop();
 			listener();
@@ -183,7 +198,7 @@ class Future<V> {
 		if (status.match(Pending(_)))
 			return new Future(future -> listeners.add(() -> {
 				var result = tryThen(status, mapper);
-				future.setComplete(result.status);
+				result.onComplete(future.setComplete);
 			}));
 		return tryThen(status, mapper);
 	}
@@ -210,6 +225,14 @@ private class Result<V> {
 	@:noUsing
 	public static inline function ofError<V>(error:Exception):Result<V>
 		return new Result(Rejected(error));
+
+	public static function invoke<V>(task:() -> Promise<V>):Promise<V> {
+		try {
+			return task();
+		} catch (error:Exception) {
+			return ofError(error);
+		}
+	}
 
 	public function then<R>(mapper:Status<V>->PromiseLike<R>):PromiseLike<R>
 		return tryThen(status, mapper);

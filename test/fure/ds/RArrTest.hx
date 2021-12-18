@@ -1,13 +1,14 @@
 package fure.ds;
 
-import fure.log.Assert;
+import fure.rx.Promise;
 import fure.ds.RArr;
 import fure.ds.RArr.RArrIterator;
+import fure.test.Assert;
 
 class RArrTest {
 	public inline function new() {}
 
-	public function test() {
+	public function test():Promise<Void> {
 		var raw:Array<Dynamic> = ['A', ['B', ['C']], [], [['D'], ['E', 'F'], 'G'], 'H'];
 
 		var arr0 = RArr.from(raw, (val:Dynamic) -> Std.isOfType(val, Array) ? Right((val : Array<Dynamic>)) : Left((val : String)));
@@ -53,5 +54,7 @@ class RArrTest {
 			assertEquals(arr0.flat(), arr2.flat()),
 			assertEquals(arr0.flat(), arr3.flat()),
 		]) !;
+
+		return Promise.empty();
 	}
 }

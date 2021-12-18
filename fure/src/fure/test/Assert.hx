@@ -1,5 +1,6 @@
-package fure.log;
+package fure.test;
 
+import fure.log.Logger;
 import haxe.ds.GenericStack;
 import haxe.PosInfos;
 import haxe.Exception;

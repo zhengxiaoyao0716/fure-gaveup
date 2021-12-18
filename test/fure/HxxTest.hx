@@ -1,8 +1,8 @@
 package fure;
 
-import fure.Hxx;
+import fure.rx.Promise;
 import fure.ds.Iter;
-import fure.log.Assert;
+import fure.test.Assert;
 #if macro
 import haxe.macro.Expr;
 #end
@@ -16,7 +16,7 @@ macro inline function hxx(expr:Expr):Expr
 class HxxTest {
 	public inline function new() {}
 
-	public function test() {
+	public function test():Promise<Void> {
 		var hxxFormatObj = hxx(
 			<Test 'root'>
 				// comments
@@ -56,23 +56,25 @@ class HxxTest {
 		]);
 
 		assertEquals(normalObj.toString(), hxxFormatObj.toString()).mustOk();
+
+		return Promise.empty();
 	}
 }
 
-abstract AbsTest(Any) {
+private abstract AbsTest(Any) {
 	public function new(props:{name:String}, inner:Inner) {
 		var innerText = inner.map(Std.string).join(', ');
 		this = 'new AbsTest(${props}, [$innerText])';
 	}
 }
 
-class Test {
+private class Test {
 	final props:Any;
 	final inner:Array<Any>;
 
 	public function new(props:Any, ?inner:Inner) {
 		this.props = props;
-		this.inner = Optional.ofNullable(inner) || [];
+		this.inner = inner == null ? [] : inner;
 	}
 
 	public static function test(props:Any):Any {

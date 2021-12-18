@@ -19,9 +19,10 @@ typedef LoggerContext = {
 	function format(name:String, indent:String, level:Level, message:String, ?pos:haxe.PosInfos):String;
 };
 
-@:forward // forward all
+@:forward
 @:using(fure.log.Logger)
 abstract Logger(LoggerContext) from LoggerContext {
+	@:from
 	public static function easy(config:{
 		name:String,
 		?indent:String,
@@ -30,8 +31,8 @@ abstract Logger(LoggerContext) from LoggerContext {
 		?noColor:Bool
 	}):Logger {
 		var formatConfig = {
-			fullTag: Optional.ofNullable(config.fullTag) || defaultFullTag,
-			noColor: Optional.ofNullable(config.noColor) || defaultNoColor,
+			fullTag: config.fullTag == null ? defaultFullTag : config.fullTag,
+			noColor: config.noColor == null ? defaultNoColor : config.noColor,
 		};
 		var format = switch formatConfig {
 			case {fullTag: true, noColor: true}: formatFullTagNoColorLogger;
@@ -42,8 +43,8 @@ abstract Logger(LoggerContext) from LoggerContext {
 		}
 		return {
 			name: config.name,
-			indent: Optional.ofNullable(config.indent) || ' ',
-			level: Optional.ofNullable(config.level) || defaultLevel,
+			indent: config.indent == null ? ' ' : config.indent,
+			level: config.level == null ? defaultLevel : config.level,
 			format: format,
 		};
 	}
@@ -55,8 +56,8 @@ abstract Logger(LoggerContext) from LoggerContext {
 	}):Logger {
 		return {
 			name: config.name,
-			indent: logger.indent + (Optional.ofNullable(config.indent) || '    '),
-			level: Optional.ofNullable(config.level) || logger.level,
+			indent: logger.indent + (config.indent == null ? '    ' : config.indent),
+			level: config.level == null ? logger.level : config.level,
 			format: logger.format,
 		}
 	}

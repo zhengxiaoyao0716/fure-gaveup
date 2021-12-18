@@ -1,5 +1,6 @@
 package fure.web;
 
+import fure.rx.State;
 #if macro
 import haxe.macro.Expr;
 #end
@@ -13,14 +14,8 @@ typedef Body = Null<Inner>;
 class Element {
 	public final tag:String;
 
-	var attr(get, default):Attr;
-	var body(get, default):Body;
-
-	function get_attr():Attr
-		return this.attr;
-
-	function get_body():Body
-		return this.body;
+	var attr:Attr;
+	var body:Body;
 
 	public function new(tag:String, ?attr:Map<String, Any>, ?body:Inner) {
 		this.tag = tag;
@@ -30,7 +25,7 @@ class Element {
 
 	public function template():Array<String> {
 		var attr = Optional.ofNullable(this.attr) && buildAttr || '';
-		var body:Inner = Optional.ofNullable(this.body) || [];
+		var body:Inner = this.body == null ? [] : this.body;
 		if (body.isEmpty())
 			return ['<$tag$attr />'];
 		var lines = body.lines('  ');
@@ -62,9 +57,16 @@ function buildAttr(attr:Attr):String {
 			case "classList": "class";
 			case _ => key: key;
 		}
-		var value = Std.isOfType(kv.value, Array) ? (kv.value : Array<Any>).join(' ') : (kv.value : String);
-		return ' ${key}="${value}"';
+		return ' $key="${buildAttrValue(kv.value)}"';
 	});
 	attr.sort((s1, s2) -> s1 < s2 ? -1 : s1 == s2 ? 0 : 1);
 	return attr.join('');
+}
+
+function buildAttrValue(value:Any) {
+	if (Std.isOfType(value, Observable))
+		return buildAttrValue((value : Observable<Any>).get());
+	if (Std.isOfType(value, Array))
+		return (value : Array<Any>).join(' ');
+	return Std.string(value);
 }

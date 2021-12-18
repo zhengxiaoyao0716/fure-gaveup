@@ -1,14 +1,14 @@
 package fure.rx;
 
 import haxe.Exception;
-import fure.log.Assert;
 import fure.rx.Promise;
+import fure.test.Assert;
 #if macro
 import haxe.macro.Context;
 #end
 
 class PromiseTest {
-	private static final exception = new Exception('test raise exception');
+	private static final exception = new Exception('test reject exception');
 
 	public inline function new() {}
 
@@ -17,8 +17,8 @@ class PromiseTest {
 		assertTrue(promise.status.match(Pending(_)));
 
 		switch promise.status {
-			case Pending(raise):
-				raise(exception);
+			case Pending(reject):
+				reject(exception);
 			case _:
 				assertNever();
 		}

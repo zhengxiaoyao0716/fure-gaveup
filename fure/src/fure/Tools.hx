@@ -8,7 +8,6 @@ using haxe.macro.Tools;
 #end
 
 typedef Optional<T> = fure.rx.Optional<T>;
-typedef Pipeable<T> = fure.rx.Pipeable<T>;
 
 @:noUsing
 macro inline function definedValue(key:ExprOf<String>):ExprOf<String>
@@ -53,6 +52,7 @@ macro function combine(rest:Array<Expr>):Expr {
 inline function toIterator(v:Dynamic):Null<Iterator<Any>>
 	return fure.ds.Iter.toIterator(v);
 
+@:noUsing
 inline function equals<V>(one:V, oth:V):Bool
 	return fure.ds.Iter.equals(one, oth);
 

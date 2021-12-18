@@ -12,7 +12,7 @@ typedef LevelStruct = {
 	final ansi:Ansi;
 };
 
-@:forward // forward all
+@:forward
 abstract Level(LevelStruct) {
 	public static final TRACE = builtin(1 << 5, '[ TRACE ] ', '    ', Ansi.WHITE);
 	public static final INFO = builtin(2 << 5, '[ INFO  ] ', '[I] ', Ansi.BLUE);
