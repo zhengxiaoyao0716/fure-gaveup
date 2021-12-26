@@ -28,6 +28,13 @@ macro function assertEquals<V>(expected:Expr, actual:Expr):ExprOf<Assert>
 inline function assertNever(?msg:String, ?pos:PosInfos)
 	return Assert.never(msg == null ? 'the line should never reached' : msg, pos);
 
+macro function assertMatch(expected:Expr, actual:ExprOf<Enum<Any>>):ExprOf<Assert> {
+	var identity = actual.toString();
+	var matchTo = expected.toString();
+	return macro @:pos(Context.currentPos())
+		Assert.match($actual, $v{identity}, $v{matchTo}, () -> $actual.match($expected));
+}
+
 typedef Error = {?msg:String, ?pos:PosInfos};
 
 @:forward(isEmpty, iterator)
@@ -79,19 +86,25 @@ abstract Assert(GenericStack<Error>) from GenericStack<Error> to GenericStack<Er
 	@:noUsing
 	public static function value<V>(expected:V, desc:String, value:() -> V, ?pos:PosInfos):Assert {
 		var value = tryCatch(desc, value());
-		return ofExpr(Tools.equals(expected, value), '$desc should be $expected, actrual: $value');
+		return ofExpr(Tools.equals(expected, value), '$desc should be $expected, actual: $value');
 	}
 
 	@:noUsing
 	public static function equals<V>(desc1:String, value1:() -> V, desc2:String, value2:() -> V, ?pos:PosInfos):Assert {
 		var value1 = tryCatch(desc1, value1());
 		var value2 = tryCatch(desc2, value2());
-		return ofExpr(Tools.equals(value1, value2), '$desc2 should equals $desc1, expected: $value1, actrual: $value2');
+		return ofExpr(Tools.equals(value1, value2), '$desc2 should equals $desc1, expected: $value1, actual: $value2');
 	}
 
 	@:noUsing
 	public static function never(msg:String, ?pos:PosInfos):Assert
 		return {msg: msg, pos: pos}
+
+	@:noUsing
+	public static function match(value:Any, identity:String, matchTo:String, matchFn:() -> Bool, ?pos:PosInfos):Assert {
+		var matched = tryCatch('$identity.match($matchTo)', matchFn());
+		return ofExpr(matched, '$identity should match to $matchTo, actual: $value');
+	}
 }
 
 private macro function tryCatch<V>(desc:ExprOf<String>, expr:Expr):Expr {

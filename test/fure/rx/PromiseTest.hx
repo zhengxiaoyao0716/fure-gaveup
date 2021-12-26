@@ -1,10 +1,12 @@
 package fure.rx;
 
+import haxe.Timer;
 import haxe.Exception;
 import fure.rx.Promise;
 import fure.test.Assert;
 #if macro
 import haxe.macro.Context;
+import haxe.macro.Expr;
 #end
 
 class PromiseTest {
@@ -12,7 +14,7 @@ class PromiseTest {
 
 	public inline function new() {}
 
-	public function test():Promise<Void> {
+	public function testBase():Promise<Void> {
 		var promise:Promise<Int> = future -> {};
 		assertTrue(promise.status.match(Pending(_)));
 
@@ -71,15 +73,15 @@ class PromiseTest {
 
 		var p1:Promise<Int> = 1, p2:Promise<Int> = 2;
 		Promise.all([p1, p2]).onComplete(status -> {
-			assertEquals(1, p1.status.value());
-			assertEquals(2, p2.status.value());
-			assertEquals([1, 2], status.value());
+			assertMatch(Resolved(1), p1.status);
+			assertMatch(Resolved(2), p2.status);
+			assertMatch(Resolved([1, 2]), status);
 		});
 		Promise.any([p1, p2]).onComplete(assertStatus(Resolved(1)));
 
 		var reject = Promise.reject(exception);
 		Promise.all([reject, p1]).onComplete(assertStatus(Rejected(exception)));
-		Promise.any([reject]).onComplete(status -> assertTrue(status.match(Rejected(_))));
+		Promise.any([reject]).onComplete(assertStatus(Rejected(_)));
 		Promise.any([reject, p1]).onComplete(assertStatus(Resolved(1)));
 
 		var f1 = new Future();
@@ -95,6 +97,39 @@ class PromiseTest {
 			;
 	}
 
-	private static macro function assertStatus<V>(value:ExprOf<Status<V>>):ExprOf<Assert>
-		return macro @:pos(Context.currentPos()) _ -> assertEquals($value, _);
+	public function testTimer():Promise<Any> {
+		var t1 = Promise.delay(() -> 'tick1', 1);
+		var t2 = t1.onSuccessThen(_ -> Promise.delay(() -> 'tick2', 1));
+		var t3 = t2.onSuccessThen(_ -> Promise.delay(() -> 'tick3', 1));
+		var t9 = t3.onSuccessThen(_ -> Promise.delay(() -> 'tick9', 6));
+		assertMatch(Pending(_), t1.status);
+		t1.onComplete(_ -> assertMatch(Resolved(_), t1.status)) //
+			.onComplete(_ -> assertMatch(Pending(_), t2.status));
+		t2.onComplete(_ -> assertMatch(Resolved(_), t2.status)) //
+			.onComplete(_ -> assertMatch(Pending(_), t3.status));
+		t3.onComplete(_ -> assertMatch(Resolved(_), t3.status)) //
+			.onComplete(_ -> assertMatch(Pending(_), t9.status));
+
+		var f1 = new Future();
+		var f2 = new Future();
+		f1.timeout(t2) // (t0: pending) -> (t1: setSuccess) -> (t2: resolve)
+			.onComplete(assertStatus(Resolved('f1')));
+		Promise.any([f1, t2]).onComplete(status -> {
+			assertMatch(Resolved('f1'), f1.status);
+			assertMatch(Pending(_), t2.status);
+		});
+		f2.timeout(t2) // (t0: pending) -> (t2: timeout) -> (t3: setSuccess)
+			.onComplete(assertStatus(Rejected(_)));
+		Promise.any([f2, t2]).onComplete(status -> {
+			assertMatch(Pending(_), f2.status);
+			assertMatch(Resolved('tick2'), t2.status);
+		});
+		t1.onSuccess(_ -> f1.setSuccess('f1'));
+		t3.onSuccess(_ -> f2.setSuccess('f2'));
+
+		return t9;
+	}
+
+	private static macro function assertStatus<V>(value:Expr):ExprOf<Assert>
+		return macro @:pos(Context.currentPos()) status -> assertMatch($value, status);
 }

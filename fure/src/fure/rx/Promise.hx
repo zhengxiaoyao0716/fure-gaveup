@@ -1,9 +1,10 @@
 package fure.rx;
 
+import eval.luv.Prepare;
 import haxe.Timer;
 import haxe.Exception;
 
-@:using(fure.rx.Promise)
+@:using(fure.rx.Promise.StateTools)
 enum Status<V> {
 	Pending(reject:Exception->Void);
 	Resolved(value:V);
@@ -41,25 +42,8 @@ abstract Promise<V>(PromiseLike<V>) from PromiseLike<V> to PromiseLike<V> {
 		return Result.invoke(task);
 
 	@:noUsing
-	public static inline function delay<V>(task:() -> Promise<V>, delay:Int):Promise<V> {
+	public static inline function delay<V>(task:() -> Promise<V>, delay:Int):Promise<V>
 		return Future.delay(task, delay);
-	}
-
-	public static function value<V>(status:Status<V>):Null<V> {
-		return switch status {
-			case Pending(_): throw new PromiseException('access pending status');
-			case Resolved(value): value;
-			case Rejected(_): null;
-		}
-	}
-
-	public static function error<V>(status:Status<V>):Null<Exception> {
-		return switch status {
-			case Pending(_): throw new PromiseException('access pending status');
-			case Resolved(_): null;
-			case Rejected(error): error;
-		}
-	}
 
 	public static function onSuccess<V, R>(promise:PromiseLike<V>, listen:V->Void):PromiseLike<Null<R>> {
 		return promise.then(status -> switch status {
@@ -154,6 +138,21 @@ abstract Promise<V>(PromiseLike<V>) from PromiseLike<V> to PromiseLike<V> {
 				future.setFailure(new PromiseException('all promises were rejected'));
 		});
 	}
+
+	public static function timeout<T>(promise:PromiseLike<T>, timeout:Promise<Any>):Promise<T> {
+		var future = Promise.future(future -> //
+			promise.onComplete(result -> //
+				if (future.status.match(Pending(_))) {
+					future.setComplete(result);
+				}));
+		timeout //
+			.onSuccessThen(_ -> Promise.reject(new TimeoutException('$future time out because $timeout completed earlier then $promise'))) //
+			.onFailure(error -> switch future.status {
+				case Pending(reject): reject(error);
+				case _: return;
+			});
+		return future;
+	}
 }
 
 @:using(fure.rx.Promise)
@@ -169,9 +168,15 @@ class Future<V> {
 	}
 
 	public static function delay<V>(task:() -> PromiseLike<V>, delay:Int):Future<V> {
-		return new Future(future -> Timer.delay(() -> {
-			Promise.invoke(task).onComplete(future.setComplete);
-		}, delay));
+		return new Future(future -> {
+			var timer = Timer.delay(() -> {
+				if (!future.status.match(Pending(_)))
+					return;
+				var promise = Promise.invoke(task);
+				promise.onComplete(future.setComplete);
+			}, delay);
+			future.onComplete(_ -> timer.stop());
+		});
 	}
 
 	public inline function setSuccess(value:V)
@@ -249,4 +254,27 @@ private inline function tryThen<V, R>(status:Status<V>, mapper:Status<V>->Promis
 class PromiseException extends Exception {
 	public function new(message:String)
 		super(message);
+}
+
+class TimeoutException extends Exception {
+	public function new(message:String)
+		super(message);
+}
+
+class StateTools {
+	public static function value<V>(status:Status<V>):Null<V> {
+		return switch status {
+			case Pending(_): throw new PromiseException('access pending status');
+			case Resolved(value): value;
+			case Rejected(_): null;
+		}
+	}
+
+	public static function error<V>(status:Status<V>):Null<Exception> {
+		return switch status {
+			case Pending(_): throw new PromiseException('access pending status');
+			case Resolved(_): null;
+			case Rejected(error): error;
+		}
+	}
 }
