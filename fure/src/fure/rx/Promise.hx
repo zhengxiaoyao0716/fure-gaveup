@@ -1,6 +1,5 @@
 package fure.rx;
 
-import eval.luv.Prepare;
 import haxe.Timer;
 import haxe.Exception;
 

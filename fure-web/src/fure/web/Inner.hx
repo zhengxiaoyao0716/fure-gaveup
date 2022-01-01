@@ -1,7 +1,6 @@
 package fure.web;
 
-import fure.rx.State;
-
+import fure.rx.Observable;
 using Lambda;
 
 @:using(fure.web.Inner)

@@ -1,6 +1,6 @@
 package fure.web;
 
-import fure.rx.State;
+import fure.rx.Observable;
 #if macro
 import haxe.macro.Expr;
 #end

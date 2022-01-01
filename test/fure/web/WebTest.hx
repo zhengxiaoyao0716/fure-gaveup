@@ -90,7 +90,7 @@ class Profile extends Element {
 			<p classList=["name"]>${props.name}</p>
 			<img classList=["avatar"] src=${props.avatar} />
 			<p classList=["intro"]>${props.intro}</p>
-			<a classList=["email"] href=(${props.email.pipe(email -> 'mailto:$email')}) />
+			<a classList=["email"] href=(${props.email >> (email -> 'mailto:$email')}) />
 			(inner)
 		');
 	}
