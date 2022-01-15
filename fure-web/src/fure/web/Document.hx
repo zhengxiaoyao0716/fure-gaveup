@@ -18,7 +18,7 @@ final HXX_CREATOR = Optional.ofNullable(#if macro Context #else Tools #end.defin
 macro inline function hxx(expr:Expr):Expr
 	return Hxx.parse(expr, HXX_CREATOR);
 
-typedef DocumentProps = {
+private typedef Props = {
 	final lang:State<String>;
 	final charset:State<String>;
 	final icon:State<String>;
@@ -26,13 +26,13 @@ typedef DocumentProps = {
 }
 
 @:forward
-private abstract OptionalProps(DocumentProps) from DocumentProps to DocumentProps {
+abstract DocumentProps(Props) from Props to Props {
 	@:from
 	public function new(props:{
-		?lang:State<String>,
-		?charset:State<String>,
-		?icon:State<String>,
-		?title:State<String>,
+		?lang:String,
+		?charset:String,
+		?icon:String,
+		?title:String,
 	}) {
 		this = {
 			lang: props.lang == null ? 'en' : props.lang,
@@ -47,12 +47,12 @@ class Document extends Element {
 	static final headHint = '<!-- [fure-web ${FURE_VERSION)}](${FURE_WEBSITE}) -->';
 	static final bodyHint = '<noscript>You need to enable JavaScript to run this app.</noscript>';
 
-	public final props:DocumentProps;
+	private final props:Props;
 
 	var headElement:Element;
 	var bodyElement:Element;
 
-	public function new(props:OptionalProps, inner:Inner) {
+	public function new(props:DocumentProps, inner:Inner) {
 		super('html', ['lang' => props.lang]);
 		this.props = props;
 

@@ -11,6 +11,7 @@ import sys.thread.*;
 #if target.threaded
 private final pool = new ElasticThreadPool(16);
 #end
+private final logger:Logger = {name: 'fure.test'}
 
 class Test {
 	public static function run(tasks:Array<() -> Promise<Any>>, timeout = 60 * 1000):Void {
@@ -33,16 +34,14 @@ class Test {
 
 		switch promise.status {
 			case Rejected(error):
-				throw error;
+				logger.error('run task failed', error);
 			#if target.threaded
 			case Pending(_):
 				waitPromiseComplete(promise, Timer.stamp() + timeout / 1000);
 				pool.shutdown();
 			#end
 			case _:
-				null;
 		};
-		var logger:Logger = {name: 'TEST'}
 		logger.bingo('finished');
 	}
 }
@@ -56,7 +55,8 @@ function waitPromiseComplete<V>(promise:Promise<V>, timeoutAt:Float) {
 		lock.wait(timeoutAt - Timer.stamp());
 		switch promise.status {
 			case Rejected(error):
-				throw error;
+				logger.error('run task failed', error);
+				return;
 			case Resolved(_):
 				return;
 			case Pending(_):

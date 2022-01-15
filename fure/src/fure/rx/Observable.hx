@@ -1,5 +1,6 @@
 package fure.rx;
 
+import fure.ds.Tls;
 import fure.rx.Promise.Future;
 import haxe.Timer;
 import haxe.Exception;
@@ -20,8 +21,9 @@ class Observable<T> {
 		return this.value;
 
 	public function get():T {
-		if (computing.value != null)
-			computing.value(this);
+		var computing = Observable.computing.value;
+		if (computing != null)
+			computing(this);
 		return switch this.value {
 			case Some(v): v;
 			case None: throw new ValueAbsentException();
@@ -114,16 +116,6 @@ class Observable<T> {
 		return result;
 	}
 }
-
-#if target.threaded
-typedef Tls<T> = sys.thread.Tls<T>;
-#else
-private class Tls<T> {
-	public var value:T;
-
-	public inline function new() {}
-}
-#end
 
 class ValueAbsentException extends Exception {
 	public function new() {

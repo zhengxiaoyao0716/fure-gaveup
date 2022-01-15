@@ -1,6 +1,8 @@
 package fure.web;
 
+import fure.rx.Hook;
 import fure.Info;
+import fure.http.Router;
 import fure.rx.Promise;
 import fure.rx.State;
 import fure.test.Assert;
@@ -9,13 +11,68 @@ import fure.web.*;
 using fure.Tools;
 using StringTools;
 
-class WebTest {
-	static final lang:State<String> = 'zh';
-
-	public inline function new() {}
+class WebTest implements Router {
+	public function new() {}
 
 	public function test():Promise<Any> {
-		var html = '<!DOCTYPE html>
+		return index().onSuccess(html -> assertEquals(indexHtml, html) !);
+	}
+
+	private final hook = new Hook();
+
+	@:route.GET('/index.html')
+	function index():Promise<String> {
+		var indexDom = hook.useMemo(Index.new).get();
+		var props = indexDom.user.props;
+		return Promise.all([
+			props.name.set('Test User'),
+			props.avatar.set('./avatar.png'),
+			props.intro.set('Some Intro'),
+			props.email.set('test@test.com'),
+		]).onSuccessThen(_ -> indexDom.dom.toString());
+	}
+}
+
+class Profile extends Element {
+	public final props = {
+		name: State.of(''),
+		avatar: State.of(''),
+		intro: State.of(''),
+		email: State.of(''),
+	};
+
+	public function new(_props:{}, ?inner:Inner) {
+		super('div', ['class' => 'profile']);
+		this.body = hxx('
+			<p classList=["name"]>${props.name}</p>
+			<img classList=["avatar"] src=${props.avatar} />
+			<p classList=["intro"]>${props.intro}</p>
+			<a classList=["email"] href=(${props.email >> (email -> 'mailto:$email')}) />
+			(inner)
+		');
+	}
+}
+
+class Index {
+	public final dom:Document;
+	public final user:Profile;
+
+	public function new() {
+		Document.hxx('
+		<Document=dom lang="zh" title="Hello Fure-Web">
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<Stylesheets ["index.css", "test.css"] />
+			<Profile=user>
+				<div id="test"><span>123</span></div>
+				"test plain text"
+			</Profile>
+			<Scripts "index.js" />
+		</Document>
+		');
+	}
+}
+
+private final indexHtml = '<!DOCTYPE html>
 <html lang="zh">
 
 <head>
@@ -43,55 +100,3 @@ class WebTest {
 
 </html>
 '.replace('\r\n', '\n');
-
-		return index().onSuccess(document -> assertEquals(html, document.toString()) !);
-	}
-
-	@:page('index.html')
-	function index():Promise<Document> {
-		var title:State<String> = 'Hello Fure-Web';
-		var user:ProfileProps = {
-			name: '',
-			avatar: '',
-			intro: '',
-			email: '',
-		};
-		var document = Document.hxx('
-		<Document lang=lang title=title>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<Stylesheets ["index.css", "test.css"] />
-		<Profile (user)>
-			<div id="test"><span>123</span></div>
-			"test plain text"
-		</Profile>
-		<Scripts "index.js" />
-		</Document>
-		');
-		return Promise.all([
-			user.name.set('Test User'),
-			user.avatar.set('./avatar.png'),
-			user.intro.set('Some Intro'),
-			user.email.set('test@test.com'),
-		]).onSuccessThen(_ -> document);
-	}
-}
-
-typedef ProfileProps = {
-	final name:State<String>;
-	final avatar:State<String>;
-	final intro:State<String>;
-	final email:State<String>;
-};
-
-class Profile extends Element {
-	public function new(props:ProfileProps, ?inner:Inner) {
-		super('div', ['class' => 'profile']);
-		this.body = hxx('
-			<p classList=["name"]>${props.name}</p>
-			<img classList=["avatar"] src=${props.avatar} />
-			<p classList=["intro"]>${props.intro}</p>
-			<a classList=["email"] href=(${props.email >> (email -> 'mailto:$email')}) />
-			(inner)
-		');
-	}
-}

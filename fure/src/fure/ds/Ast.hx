@@ -11,7 +11,7 @@ using Lambda;
 enum Ast {
 	Node(offset:Offset, tag:String, props:() -> Ast, inner:() -> Array<Ast>);
 	Flat(offset:Offset, inner:() -> Array<Ast>);
-	Code(offset:Offset, src:String);
+	Code(offset:Offset, src:String, extra:String);
 }
 
 abstract Offset(Array<Int>) from Array<Int> {
@@ -33,16 +33,24 @@ abstract Offset(Array<Int>) from Array<Int> {
 function dumps(ast:Ast, crt:String):String {
 	return switch ast {
 		case Node(_, tag, props, inner):
-			var props = props().dumps(crt);
+			var bind;
+			var props = switch props() {
+				case Code(_, src, extra):
+					bind = extra;
+					src;
+				case _ => props:
+					bind = '';
+					props.dumps(crt);
+			}
 			var inner = inner();
 			if (inner.empty())
-				return create(tag, props, crt);
+				return create(tag, bind, props, crt);
 			var inner = inner.map(it -> dumps(it, crt));
 			if (inner.length == 1)
-				return create(tag, '$props, ${inner[0]}', crt);
-			return create(tag, '$props, $inner', crt);
+				return create(tag, bind, '$props, ${inner[0]}', crt);
+			return create(tag, bind, '$props, $inner', crt);
 		case Flat(_, inner): 'new fure.ds.Iter.Flat(${inner().map(it -> dumps(it, crt))})';
-		case Code(_, src): src;
+		case Code(_, src, _): src;
 	}
 }
 
@@ -51,9 +59,10 @@ inline function parse(ast:Ast, crt:String, pos:Position):Expr
 	return Context.parse(ast.dumps(crt), pos);
 #end
 
-private function create(tag:String, arg:String, crt:String):String {
+private function create(tag:String, bind:String, arg:String, crt:String):String {
 	var index = tag.lastIndexOf('.') + 1;
 	var code = tag.charCodeAt(index);
 	var isClass = 'A'.code <= code && code <= 'Z'.code;
-	return isClass ? 'new $tag($arg)' : crt == '' ? '$tag($arg)' : '$crt(\'$tag\', $arg)';
+	var node = isClass ? 'new $tag($arg)' : crt == '' ? '$tag($arg)' : '$crt(\'$tag\', $arg)';
+	return bind + node;
 }

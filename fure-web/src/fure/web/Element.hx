@@ -53,20 +53,21 @@ abstract Elements<T>(Inner.Flat) {
 function buildAttr(attr:Attr):String {
 	var attr = attr.keyValueIterable().map(kv -> {
 		var key = kv.key.fastCodeAt(0) == '_'.code ? kv.key.substr(1) : kv.key;
-		var key = switch key {
-			case "classList": "class";
-			case _ => key: key;
+		return switch key {
+			case 'classList':
+				' class="${buildAttrValue(kv.value, ' ')}"';
+			case _ => key:
+				' $key="${buildAttrValue(kv.value, ' ')}"';
 		}
-		return ' $key="${buildAttrValue(kv.value)}"';
 	});
 	attr.sort((s1, s2) -> s1 < s2 ? -1 : s1 == s2 ? 0 : 1);
 	return attr.join('');
 }
 
-function buildAttrValue(value:Any) {
+function buildAttrValue(value:Any, join:String) {
 	if (Std.isOfType(value, Observable))
-		return buildAttrValue((value : Observable<Any>).get());
+		return buildAttrValue((value : Observable<Any>).get(), join);
 	if (Std.isOfType(value, Array))
-		return (value : Array<Any>).join(' ');
+		return (value : Array<Any>).join(join);
 	return Std.string(value);
 }

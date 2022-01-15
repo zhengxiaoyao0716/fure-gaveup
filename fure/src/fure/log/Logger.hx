@@ -1,5 +1,8 @@
 package fure.log;
 
+import haxe.CallStack;
+import haxe.CallStack.StackItem;
+import haxe.Exception;
 import haxe.macro.Context;
 
 #if macro
@@ -67,20 +70,29 @@ abstract Logger(LoggerContext) from LoggerContext {
 			stdoutWrite(this.format(this.name, this.indent, level, message, pos));
 	}
 
-	public inline function trace(message:String, ?pos:haxe.PosInfos)
-		print(Level.TRACE, message, pos);
+	public function trace(message:String, ?pos:haxe.PosInfos)
+		inline print(Level.TRACE, message, pos);
 
-	public inline function info(message:String, ?pos:haxe.PosInfos)
-		print(Level.INFO, message, pos);
+	public function info(message:String, ?pos:haxe.PosInfos)
+		inline print(Level.INFO, message, pos);
 
-	public inline function warn(message:String, ?pos:haxe.PosInfos)
-		print(Level.WARN, message, pos);
+	public function warn(message:String, ?pos:haxe.PosInfos)
+		inline print(Level.WARN, message, pos);
 
-	public inline function bingo(message:String, ?pos:haxe.PosInfos)
-		print(Level.BINGO, message, pos);
+	public function bingo(message:String, ?pos:haxe.PosInfos)
+		inline print(Level.BINGO, message, pos);
 
-	public inline function error(message:String, ?pos:haxe.PosInfos)
-		print(Level.ERROR, message, pos);
+	public function error(message:String, ?error:Exception, ?pos:haxe.PosInfos) {
+		var logPosStack = CallStack.toString([Method(pos.className, pos.methodName)]).trim();
+		var stackAll = error.details().split('\n');
+		var stack = '';
+		for (line in stackAll) {
+			stack += '\n    $line';
+			if (line.startsWith(logPosStack))
+				break;
+		}
+		inline print(Level.ERROR, '$message$stack', pos);
+	}
 }
 
 function formatFullTagNoColorLogger(name:String, indent:String, level:Level, message:String, ?pos:haxe.PosInfos):String

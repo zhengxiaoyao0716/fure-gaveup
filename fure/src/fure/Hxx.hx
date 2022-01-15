@@ -32,7 +32,7 @@ abstract Hxx(String) from String {
 		var builder = builder.iterator();
 
 		return switch builder.length {
-			case 0: Code([0, this.length], 'null');
+			case 0: Code([0, this.length], 'null', '');
 			case 1: buildAst(builder.next(), this.length);
 			case _: Flat([0, this.length], () -> buildAstIter(builder, this.length));
 		}
@@ -45,6 +45,7 @@ abstract Hxx(String) from String {
 		var offset = skipSpace(offset);
 
 		var props:Array<String> = null;
+		var assign:Array<String> = [];
 
 		while (offset < this.length) {
 			switch state {
@@ -62,8 +63,7 @@ abstract Hxx(String) from String {
 							throw new HxxAstException('Expected `<`', this, offset);
 						var block = this.substring(offset, endAt);
 
-						builder.push(Code(offset, block));
-						// state = Begin;
+						builder.push(Code(offset, block, ''));
 						offset = skipSpace(endAt);
 						continue;
 					}
@@ -74,7 +74,6 @@ abstract Hxx(String) from String {
 						case '/'.code:
 							if (offset + 2 >= this.length)
 								throw new HxxAstException('Expected tag or `>`', this, offset);
-							// builder.rize();
 							return offset;
 						case '>'.code:
 							builder.dive(2);
@@ -98,7 +97,7 @@ abstract Hxx(String) from String {
 					switch charCode {
 						case '/'.code:
 							if (props != null)
-								builder.push(Code(offset, props.length <= 0 ? 'null' : '{ ${props.join(', ')} }'));
+								builder.push(Code(offset, props.length <= 0 ? 'null' : '{ ${props.join(', ')} }', assign.join('')));
 
 							offset = skipSpace(offset + 1);
 							if (offset >= this.length)
@@ -115,7 +114,7 @@ abstract Hxx(String) from String {
 
 						case '>'.code:
 							if (props != null)
-								builder.push(Code(offset, props.length <= 0 ? 'null' : '{ ${props.join(', ')} }'));
+								builder.push(Code(offset, props.length <= 0 ? 'null' : '{ ${props.join(', ')} }', assign.join('')));
 
 							state = Inner;
 							offset = skipSpace(offset + 1);
@@ -128,7 +127,7 @@ abstract Hxx(String) from String {
 								var block = this.substring(offset, endAt);
 
 								props = null;
-								builder.push(Code(offset, block));
+								builder.push(Code(offset, block, ''));
 								// state = Props;
 								offset = skipSpace(endAt);
 								continue;
@@ -145,7 +144,10 @@ abstract Hxx(String) from String {
 							if (endAt <= offset)
 								throw new HxxAstException('Expected block', this, offset);
 							var value = this.substring(offset, endAt);
-							props.push('"$name": $value');
+							if (name == '')
+								assign.push('$value = ');
+							else
+								props.push('"$name": $value');
 							offset = skipSpace(endAt);
 					}
 
@@ -345,7 +347,7 @@ abstract Hxx(String) from String {
 		return switch nodes {
 			case Left(one):
 				switch one {
-					case Code(offset, src): Code([offset, endAt], src);
+					case Code(offset, src, extra): Code([offset, endAt], src, extra);
 					case _: null; // never
 				}
 			case Right(_.iterator() => nodes):
@@ -412,5 +414,5 @@ class HxxAstException extends Exception {
 enum AstBuilder {
 	Node(offset:Int, tag:String);
 	Flat(offset:Int);
-	Code(offset:Int, src:String);
+	Code(offset:Int, src:String, extra:String);
 }

@@ -1,0 +1,20 @@
+{
+  "name": "fure-http",
+  "url": "https://github.com/zheng0716/fure/",
+  "license": "MIT",
+  "tags": [
+    "Functional",
+    "Reactive",
+    "Framework"
+  ],
+  "description": "Functional Reactive Framework.",
+  "version": "0.0.1",
+  "classPath": "src/",
+  "releasenote": "",
+  "contributors": [
+    "zhengxiaoyao0716"
+  ],
+  "dependencies": {
+    "fure": ""
+  }
+}

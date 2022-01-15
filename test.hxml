@@ -7,6 +7,7 @@
 --main Test
 # https://lib.haxe.org/documentation/using-haxelib/#dev
 --library fure
+--library fure-http
 --library fure-web
 --dce full
 --each
