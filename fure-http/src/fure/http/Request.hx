@@ -1,12 +1,10 @@
 package fure.http;
 
+import fure.http.Server.Address;
 import haxe.http.HttpMethod;
 import haxe.io.Bytes;
 
 typedef Url = String;
-typedef Host = String;
-typedef Port = Int;
-typedef Address = {host:Host, port:Port};
 
 @:structInit class Request {
 	public final url:Url;

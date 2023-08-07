@@ -1,16 +1,15 @@
 package fure.web;
 
-import fure.rx.Hook;
+import fure.http.*;
 import fure.Info;
-import fure.http.Router;
-import fure.rx.Promise;
-import fure.rx.State;
+import fure.rx.*;
 import fure.test.Assert;
 import fure.web.*;
 
 using fure.Tools;
 using StringTools;
 
+@:route('/test')
 class WebTest implements Router {
 	public function new() {}
 
@@ -20,8 +19,8 @@ class WebTest implements Router {
 
 	private final hook = new Hook();
 
-	@:route.GET('/index.html')
-	function index():Promise<String> {
+	@:route.Get('/index.html')
+	function index(?request):Promise<String> {
 		var indexDom = hook.useMemo(Index.new).get();
 		var props = indexDom.user.props;
 		return Promise.all([
